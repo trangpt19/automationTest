@@ -1,0 +1,122 @@
+*** Settings ***
+Library           String
+Library           Selenium2Library
+Library           DatabaseLibrary
+
+*** Keywords ***
+Select Random A Value From ListBox
+    [Arguments]    ${locator}    ${key}
+    [Documentation]    *Author:* Trangpt
+    Run Keyword If    '${key}'!='[Any]'    Run Keywords    Select From List By Value    ${locator}    ${key}    AND
+    ...    Return From Keyword
+    @{list}    Get List Items    ${locator}
+    ${length}    Get Length    ${list}
+    Run Keyword If    ${length}<=1    Return From Keyword
+    ${randomIndex}    Evaluate    random.randint(1, ${length}-1)    random,sys
+    ${randomIndex}    Convert To String    ${randomIndex}
+    Select From List By Index    ${locator}    ${randomIndex}
+
+Select Random A Value From Listbox By JavaScript
+    [Arguments]    ${locator}    ${key}
+    [Documentation]    The keyword gets random value from a dropdown list
+    ...    - Department
+    ...    - Program
+    ...    - Title
+    ...    - Title Detail
+    ...    Args:
+    ...    Key = ['None', 'Any', 'Value']
+    ...
+    ...    *Author:* Binh Dao Quang
+    Run Keyword If    '${key}'=='[Any]'    Run Keywords    Execute Javascript    $(document).ready(function(){var myArray =$("select#${locator} option").map(function() {return $(this).val();}).get();var random= myArray[Math.floor(Math.random() * myArray.length)]; $('#${locator}').select2("val",random); console.log(random);})    AND    Return From Keyword
+    ...    ELSE IF    '${key}'=='[None]'    Return From Keyword    ELSE    Run Keywords    Execute Javascript
+    ...    $(document).ready(function(){$('#${locator}').select2("val",${key});})    AND    Return From Keyword
+
+Get Random An Topic To Edit
+    [Documentation]    Return:
+    ...    - Record Index in the webapp
+    ...    - Record Id in the Database
+    ${totalPage}    Get Count Page
+    ${pageRandom}    Evaluate    random.randint(1, ${totalPage})    random,sys
+    Click Element    //*[@id="tbldata_paginate"]/span/a[${pageRandom}]
+    Comment    ${totalRecord}    Set Variable    1
+    ${totalRecord}    Get Count Record On The Page    #dem tong so ban ghi trong 1 trang
+    Log    ${totalRecord}
+    ${randomRecordIndex}    Evaluate    random.randint(1, ${totalRecord})    random,sys
+    ${elementText}    Get Element Attribute    css=#tbldata > tbody > tr:nth-child(${randomRecordIndex}) > td.with-action > a.action.approve@onclick    #get ID in Database. Nho co xac dinh locator ah.
+    ${length}    Get Length    ${elementText}
+    ${length}    Evaluate    ${length}-1
+    ${id}    Get Substring    ${elementText}    9    ${length}
+    Comment    Click Element    css=#tbldata > tbody > tr:nth-child(${randomRecord}) > td.with-action > a.action.approve    #Click ban ghi ${randomRecord}
+    @{indexList}    Set Variable    ${randomRecordIndex}    ${id}
+    [Return]    @{indexList}
+
+Fill Data to Register Topic
+    [Arguments]    ${dept}    ${program}    ${category}    ${categoryDetail}    ${title}    ${description }=0
+    ...    ${file}=${EMPTY}
+    [Documentation]    *Description:* Fill data to register topic form
+    ...
+    ...    *Author:* Trangpt
+    [Timeout]
+    Wait Until Element Is Visible    id=DepartmentId
+    Run Keyword If    '${dept}'!='${EMPTY}'    Select Random A Value From ListBox    id=DepartmentId    ${program}    #chọn chương trình
+    Fill Data to Edit Topic    ${program}    ${category}    ${categoryDetail}    ${title}    ${description }    ${file}
+
+Fill Data to Edit Topic
+    [Arguments]    ${program}    ${category}    ${categoryDetail}    ${title}    ${description }=0    ${file}=${EMPTY}
+    [Documentation]    *Description:* Fill data to edit topic form
+    ...
+    ...    *Author:* Trangpt
+    [Timeout]
+    Wait Until Element Is Visible    id=TVProgramId
+    Run Keyword If    '${program}'!='${EMPTY}'    Select Random A Value From ListBox    id=TVProgramId    ${program}    #chọn chương trình
+    Run Keyword If    '${category}'!='${EMPTY}'    Select Random A Value From ListBox    id=TVCategoryId    ${category}    #chọn thể loại
+    Run Keyword If    '${categoryDetail}'!='${EMPTY}'    Select Random A Value From ListBox    id=TVCategoryDetailId    ${categoryDetail}    #chọn Thể loại chi tiết
+    ${value}    Generate Random String    ${title}    [LETTERS][NUMBERS]
+    Run Keyword If    ${title}!=0    Input Text    name=Title    ${value}    #input tiêu đề
+
+Get Count Record On The Page
+    [Documentation]    *Description:* count total \ record in a page
+    Wait Until Element Is Visible    css=div.dataTables_info
+    ${count}    Get Matching Xpath Count    //*[@id="tbldata"]/tbody/tr
+    [Return]    ${count}
+
+Get Count Page
+    [Documentation]    *Description:* count total page
+    Wait Until Element Is Visible    css=div.dataTables_info
+    ${count}    Get Matching Xpath Count    //*[@id="tbldata_paginate"]/span/a
+    [Return]    ${count}
+
+Test Setup
+    Open Browser    ${URL}
+    Set Selenium Speed    1
+    Input Text    css=#txtUserName    ${USER}
+    Input Password    css=#txtPassword    ${PASSWORD}
+    Press Key    css=#txtPassword    \n
+    Wait Until Page Contains    Trang chủ    5s
+    Wait Until Element Is Visible    css=ul.main-nav > li:nth-child(4) > a:nth-child(1)    #Tiền kỳ
+    Click Element    css=ul.main-nav > li:nth-child(4) > a:nth-child(1)
+
+Connect To Database Setup
+    Connect To Database    pymssql    ktvdb    ktv    ktv123a@    210.245.92.218    1433
+
+Get ScenarioStatus From DB By TopicId
+    [Arguments]    ${topicId}
+    [Documentation]    Bảng MAM_TVContent
+    ...    [Screnario Status]--LuuNhap = 0,
+    ...    BienTapKichBan = 1,
+    ...    HuyBienTapKichBan=2,
+    ...    PhongDuyetKichBan = 3
+    ...    PhongHuyDuyetKichBan=4,
+    ...    LanhDaoDuyetKichBan = 5,
+    ...    LanhDaoHuyDuyetKichBan = 6,
+    ...    DuyetKichBan =7,
+    ...    PhongDuyetSanXuat = 8,
+    ...    PhongHuyDuyetSanXuat = 9,
+    ...    LanhDaoDuyetSanXuat=10,
+    ...    LanhDaoHuyDuyetSanXuat = 11,
+    ...    DuyetSanXuat=12 ,
+    ...    LuuNhapDkSanXuat=13,
+    ...    InProgress=199
+    @{query1}    Query    select ScenarioStatus from ktvdb.dbo.MAM_TVContent where Id=${topicId}
+    ${scenarioStatus}    Set Variable    @{query1[0]}
+    [Return]    ${scenarioStatus}

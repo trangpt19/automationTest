@@ -1,0 +1,123 @@
+*** Settings ***
+Library           Selenium2Library    timeout=10.0    implicit_wait=0.0    run_on_failure=Capture Page Screenshot
+Resource          ../resources/Common_Keyword.txt
+Library           DatabaseLibrary
+
+*** Variables ***
+${PASSWORD}       123123
+${USER}           admin
+${URL}            http://ktv.vnwebapp.net/Account/Login?ReturnUrl=%2f
+
+*** Test Cases ***    TCID          description                                  expected result    alert message    dept         program     category          categoryDetail    title    description    file
+Register Topic Template
+                      [Setup]       Test Setup
+                      [Template]    Register Topic Template
+                      TC01          Đăng ký đề tài với các giá trị ngẫu nhiên    Fail               ${EMPTY}         [Any]        [Any]       [Any]             [Any]             0
+                      [Teardown]
+
+Edit Topic Template
+                      [Setup]       Test Setup
+                      [Template]    Edit Random A Topic
+                      TC01          Đăng ký đề tài với các giá trị ngẫu nhiên    Fail               ${EMPTY}         [Any]        [Any]       [Any]             [Any]             0
+                      [Teardown]
+
+test                  Comment       Connect To Database                          pymssql            ktvdb            ktv          ktv123a@    210.245.92.218    1433
+                      Comment       Get ScenarioStatus From DB By TopicId        367
+                      ${a}          Set Variable                                 editItem(382)
+                      ${length}     Get Length                                   ${a}
+                      ${length}     Evaluate                                     ${length}-1
+                      ${a}          Get Substring                                editItem(382)      9                ${length}
+
+*** Keywords ***
+Register Topic Template
+    [Arguments]    ${testId}    ${description}    ${expectedResult}    ${alertMsg}    ${dept}    ${program}
+    ...    ${category}    ${categoryDetail}    ${title}    ${description }=0    ${file}=${EMPTY}
+    [Documentation]    *Description*: Complete to register an topic
+    ...
+    ...    *Arguments:*
+    ...    - ${dept} values in [${EMPTY}, [Any], Specific value]
+    ...    - ${program} \ values in [${EMPTY}, [Any], Specific value]
+    ...    - ${category} \ values in [${EMPTY}, [Any], Specific value]
+    ...    - ${categoryDetail} \ values in [${EMPTY}, [Any], Specific value]
+    ...    - ${title} is length title. Values in [0, <= 2, > 2]
+    ...    - ${description } is length desciption.
+    ...    - ${file} is a file
+    ...
+    ...    *Note:* Specific value is number, that is relative argument
+    Wait Until Element Is Visible    css=div.subnav:nth-child(1) > ul:nth-child(2) > li:nth-child(2) > a:nth-child(1)
+    Click Element    css=div.subnav:nth-child(1) > ul:nth-child(2) > li:nth-child(2) > a:nth-child(1)
+    Fill Data to Register Topic    ${dept}    ${program}    ${category}    ${categoryDetail}    ${title}    ${description }
+    ...    ${file}
+    Click Button    css=button.btn:nth-child(2)    #"Hoàn thành"
+    Run Keyword If    '${expectedResult}'=='Fail'    Verify Register Topic In Case of Error    ${expectedResult}    ${alertMsg}
+    Run Keyword If    '${expectedResult}'=='Pass'    Verify Register Topic In Case of Pass    ${expectedResult}    ${alertMsg}
+
+Save Topic Template
+    [Arguments]    ${dept}    ${program}    ${category}    ${categoryDetail}    ${title}    ${description }=0
+    ...    ${file}=${EMPTY}
+    [Documentation]    *Description*: Lưu nháp khi đăng ký đề tài
+    ...
+    ...    *Arguments:*
+    ...    - ${dept} values in [${EMPTY}, [Any], Specific value]
+    ...    - ${program} \ values in [${EMPTY}, [Any], Specific value]
+    ...    - ${category} \ values in [${EMPTY}, [Any], Specific value]
+    ...    - ${categoryDetail} \ values in [${EMPTY}, [Any], Specific value]
+    ...    - ${title} is length title. Values in [0, <= 2, > 2]
+    ...    - ${description } is length desciption.
+    ...    - ${file} is a file
+    ...
+    ...    *Note:* Specific value is number, that is relative argument
+    Fill Data to Register Topic    ${dept}    ${program}    ${category}    ${categoryDetail}    ${title}    ${description }
+    ...    ${file}
+    Click Button    css=button.btn:nth-child(1)    #"Lưu nháp"
+    Comment    Verify Register Topic In Case of Error    #chua viet phan nay
+
+Complete To Edit Random A Topic Template
+    [Arguments]    ${testId}    ${description}    ${expectedResult}    ${alertMsg}    ${dept}    ${program}
+    ...    ${category}    ${categoryDetail}    ${title}    ${description }=0    ${file}=${EMPTY}
+    [Documentation]    *Mô tả:* Hoàn thành việc biên tập 1 đề tài kịch bản ngẫu nhiên
+    Edit Random A Topic    ${program}    ${category}    ${categoryDetail}    ${title}    ${description }    ${file}
+    Click Button    css=button.btn:nth-child(2)    #"Hoàn thành" scenario status = 1
+    ${topicId}    Get ScenarioStatus From DB By TopicId    ${topic[1]}
+    #verify Expected result
+    ${isError}    Evaluate    ${topicId}==1 and '${expectedResult}'=='Pass'
+    Run Keyword If    '${isError}'=='Fail'    Fail    Does not complete to edit topic
+
+Cancel Edit Random A Topic Template
+    [Arguments]    ${testId}    ${description}    ${expectedResult}    ${alertMsg}    ${dept}    ${program}
+    ...    ${category}    ${categoryDetail}    ${title}    ${description }=0    ${file}=${EMPTY}
+    [Documentation]    *Mô tả:* Trả lại 1 đề tài kịch bản ngẫu nhiên bởi biên tập viên
+    Edit Random A Topic    ${program}    ${category}    ${categoryDetail}    ${title}    ${description }    ${file}
+    Click Button    css=button.btn:nth-child(1)    #"Trả lại" scenario status = 2
+    ${topicId}    Get ScenarioStatus From DB By TopicId    ${topic[1]}
+    #verify Expected result
+    ${isError}    Evaluate    ${topicId}==2 and '${expectedResult}'=='Pass'
+    Run Keyword If    '${isError}'=='Fail'    Fail    Does not complete to edit topic
+
+Edit Random A Topic
+    [Arguments]    ${testId}    ${description}    ${expectedResult}    ${alertMsg}    ${dept}    ${program}
+    ...    ${category}    ${categoryDetail}    ${title}    ${description }=0    ${file}=${EMPTY}
+    Wait Until Element Is Visible    css=div.subnav:nth-child(1) > ul:nth-child(2) > li:nth-child(3) > a:nth-child(1)
+    Click Element    css=div.subnav:nth-child(1) > ul:nth-child(2) > li:nth-child(3) > a:nth-child(1)
+    @{topic}    Get Random An Topic To Edit
+    Click Element    css=#tbldata > tbody > tr:nth-child(${topic[0]}) > td.with-action > a.action.approve    #Click ban ghi ${randomRecord}
+    Fill Data to Edit Topic    ${program}    ${category}    ${categoryDetail}    ${title}    ${description }    ${file}
+
+Verify Register Topic In Case of Error
+    [Arguments]    ${expectedResult}    ${alertMsg}
+    [Documentation]    *Description:* Verify Register Topic in case the expected result of Fail
+    ${isLabelError}    Run Keyword And Return Status    Element Should Be Visible    xpath=//*[@id="ajaxform"]/div[3]/div/label
+    ${status}    Run Keyword And Return Status    Alert Should Be Present
+    ${is error}    Evaluate    ${isLabelError} or ${status}
+    ${is error}    Evaluate    '${is error}'=='True' and '${expectedResult}'=='Fail'
+    Run Keyword If    '${is error}'=='Fail'    Fail    Test case expect to fail but actually no error message appear
+
+Verify Register Topic In Case of Pass
+    [Arguments]    ${expectedResult}    ${alertMsg}
+    [Documentation]    *Description:* Verify Register Topic in case the expected result of Pass.
+    ${isLabelError}    Run Keyword And Return Status    Element Should Be Visible    xpath=//*[@id="ajaxform"]/div[3]/div/label
+    ${status}    Run Keyword And Return Status    Alert Should Be Present
+    ${is error}    Evaluate    ${isLabelError} or ${status}
+    Comment    ${is error}    Evaluate    '${is error}'=='True' and '${expectedResult}'=='Fail'
+    Run Keyword If    ${is error}    Fail
+    Click Element    css=div.subnav:nth-child(1) > ul:nth-child(2) > li:nth-child(1) > a:nth-child(1)

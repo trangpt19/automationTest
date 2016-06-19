@@ -1,0 +1,40 @@
+*** Settings ***
+Test Template
+Library           Selenium2Library
+Library           ../libs/etaLibrary.py
+Library           String
+Resource          ../resources/common_keyword.txt
+
+*** Test Cases ***
+Find One-way with valid data
+    [Documentation]    \
+    [Setup]    Test Setup
+    [Template]
+    : FOR    ${item}    IN RANGE    1    10
+    \    Search One-way Flight_Template    expectedResult=Pass    from=[Any]    to=[Any]    departingDate=[Any]
+    [Teardown]    Close Browser
+
+Find One-way with invalid data
+    [Documentation]    TC_id | TC_desc | expectedResult | from=None | To=None | departingDate=None
+    ...
+    ...    Test data format:
+    ...    - [None]
+    ...    - [Any]
+    ...    - or specific value
+    [Setup]    Test Setup
+    [Template]    Search one-way flight_Template
+    TC01    Tìm kiếm chuyến bay với giá trị mặc định    Fail    from=[None]    to=[None]    departingDate=[None]
+    [Teardown]    Close Browser
+
+debug
+    [Documentation]    TC_id | TC_desc | expectedResult | from=None | To=None | departingDate=None
+    ...
+    ...    Test data format:
+    ...    - [None]
+    ...    - [Any]
+    ...    - or specific value
+    [Setup]    Test setup
+    [Template]
+    Search one-way flight_Template    TC01    Tìm kiếm chuyến bay với giá trị mặc định    Pass    from=Ca Mau (CAH)    to=Busan (PUS)    departingDate=[Any]
+
+*** Keywords ***

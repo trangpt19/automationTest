@@ -1,0 +1,79 @@
+*** Settings ***
+Library           ../libs/etaLibrary.py
+Library           Selenium2Library
+Library           String
+
+*** Variables ***
+${URL_HOME}       https://wl-prod.sabresonicweb.com/SSW2010/B3QE/webqtrip.html?execution=e1s1
+
+*** Keywords ***
+Test Setup
+    Open Browser    ${URL_HOME}
+    #    Maximize Browser Window
+    Wait Until Element Is visible    id=origin_airport0
+    Set Selenium Speed    0.2
+
+Verify Search Flights In Case of Error
+    ${validation error}    Run Keyword And Return Status    Element Should Be Visible    id=flow-message-validationError    #Nhap thong tin ko hop le
+    ${not found flights}    Run Keyword And Return Status    Element Should Be Visible    id=flow-message-noFlightsAvailableOutbound    #Khong co chuyen bay
+    ${is error}    evaluate    ${validation error} or ${not found flights}    \    #xuat hien mot trong hai truong hop: du lieu khong hop le hoac khong co chuyen bay
+    Run Keyword If    '${is error}'=='False'    Fail    Test case expect to fail but actually no error message appear
+
+Fill Departing Date
+    [Arguments]    ${noOfDay1}    # day distance from current date
+    ${randDay}    Evaluate    random.randint(1, 60)    random, sys    #đặt chuyến bay có ngày khởi hành <= 2 tháng
+    ${noOfDay1}    Set Variable If    '${noOfDay1}'=='[Any]'    ${randDay}    ${noOfDay1}
+    ${departingDate}    Get Future Date    ${noOfDay1}
+    Input Text    id=date0    ${departingDate}    #input departing date
+    [Return]    ${noOfDay1}
+
+Fill Returning Date
+    [Arguments]    ${noOfDay1}    ${noOfDay2}
+    ${ranDay}    Evaluate    random.randint(1, 30)    random, sys
+    ${ranDay}    Evaluate    ${noOfDay1}+${ranDay}
+    ${noOfDay2}    Set Variable If    '${noOfDay2}'=='[Any]'    ${ranDay}    ${noOfDay2}
+    ${returningDate}    Get Future Date    ${noOfDay2}
+    Input Text    id=date1    ${returningDate}
+    [Return]    ${noOfDay2}
+
+Fil Departure Place
+    [Arguments]    ${departure}=[Any]
+    Click Element    css=#airports-dates-container > div.component-section.column.search-flights > fieldset > div:nth-child(2) > a
+    ${placeID}    Evaluate    'origins-'+'${departure}'
+    Run Keyword If    '${departure}'!='[Any]'    Run Keywords    Click Element    ${placeID}
+    ...    AND    Return From Keyword
+    Execute Javascript    var parent = document.getElementById('origin_airport0-cont'); var list = parent.getElementsByTagName('li');var size = list.length; var index = Math.floor(Math.random() * size ) + 1; list[index].childNodes[0].click(); return size;
+
+Fill Destination Place
+    [Arguments]    ${destination}=[Any]
+    Click Element    css=#airports-dates-container > div.component-section.column.search-flights > fieldset > div:nth-child(3) > a
+    ${placeID}    Evaluate    'destinations-'+'${destination}'
+    Run Keyword If    '${destination}'!='[Any]'    Run Keywords    Click Element    ${placeID}
+    ...    AND    Return From Keyword
+    Click Element    css=#airports-dates-container > div.component-section.column.search-flights > fieldset > div:nth-child(3) > a
+    Execute Javascript    var parent = document.getElementById('destination_airport0-cont'); var list = parent.getElementsByTagName('li');var size = list.length; var index = Math.floor(Math.random() * size ) + 1; list[index].childNodes[0].click(); return size;
+
+Fill One-Way Flight Search
+    [Arguments]    ${from}    ${to}    ${departingDate}
+    Run Keyword If    '${from}'!='[None]'    Fil Departure Place    ${from}
+    Run Keyword If    '${to}'!='[None]'    Fill Destination Place    ${to}
+    ${noOfDay1}    Run Keyword If    '${departingDate}'!='[None]'    Fill Departing Date    ${departingDate}
+    [Return]    ${noOfDay1}
+
+Search One-way Flight_Template
+    [Arguments]    ${TC_id}=${EMPTY}    ${TC_desc}=${EMPTY}    ${expectedResult}=${EMPTY}    ${from}=[None]    ${to}=[None]    ${departingDate}=[None]
+    Select Radio Button    journey    ONE_WAY
+    Fill One-Way Flight Search    ${from}    ${to}    ${departingDate}
+    Click Button    id=btn-search
+    Run Keyword If    '${expectedResult}'=='Fail'    Verify Search Flights In Case of Error
+    Run Keyword If    '${expectedResult}'=='Pass'    Element Should Be Visible    css=div.flight-info h2    #Departure Flight Options
+
+Search Round-Trip Flight_Template
+    [Arguments]    ${TC_id}    ${TC_desc}    ${expectedResult}    ${from}=[None]    ${to}=[None]    ${departingDate}=[None]
+    ...    ${returningDate}=[None]
+    Select Radio Button    journey    ROUND_TRIP
+    Fill One-Way Flight Search    ${from}    ${to}    ${departingDate}
+    Run Keyword If    '${returningDate}'!='[None]'    Fill Returning Date    ${departingDate}    ${returningDate}
+    Click Button    id=btn-search
+    Run Keyword If    '${expectedResult}'=='Fail'    Verify Search Flights In Case of Error
+    Run Keyword If    '${expectedResult}'=='Pass'    Element Should Be Visible    css=div.flight-info h2    #Departure Flight Options

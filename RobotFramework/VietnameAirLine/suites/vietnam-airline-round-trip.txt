@@ -1,0 +1,45 @@
+*** Settings ***
+Suite Setup
+Suite Teardown
+Test Template
+Library           Selenium2Library
+Library           ../libs/etaLibrary.py
+Library           String
+Resource          ../resources/common_keyword.txt
+
+*** Variables ***
+
+*** Test Cases ***
+Find Round-trip with valid data
+    [Setup]    Test Setup
+    [Template]
+    : FOR    ${item}    IN RANGE    1    10
+    \    Search Round-Trip flight_Template    expectedResult=Pass    from=[Any]    to=[Any]    departingDate=[Any]    returningDate=[Any]
+    [Teardown]    Close Browser
+
+Find Round-trip with invalid data
+    [Documentation]    TC_id | TC_desc | expectedResult | from=None | To=None | departingDate=None | returningDate=None
+    ...
+    ...    Test data format:
+    ...    - [None]
+    ...    - [Any]
+    ...    - or specific value
+    [Setup]    Test Setup
+    [Template]    Search Round-Trip flight_Template
+    TC01    Chỉ nhập Flying To    Fail    HAN    [NONE]    5    3
+    TC02    Chỉ nhập Flying From    Fail    [NONE]    [Any]    5    3
+    TC03    Mac dinh ca Flying to va From    Fail    [NONE]    [NONE]    5    3
+    [Teardown]    Close Browser
+
+debug
+    [Documentation]    TC_id | TC_desc | expectedResult | from=None | To=None | departingDate=None | returningDate=None
+    ...
+    ...    Test data format:
+    ...    - [None]
+    ...    - [Any]
+    ...    - or specific value
+    [Setup]    Test Setup
+    Search Round-Trip flight_Template    TC01    Tìm kiếm chuyến bay với giá trị mặc định    Pass    CAH    SGN    departingDate=5
+    ...    returningDate=10
+
+*** Keywords ***
